@@ -1,0 +1,401 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Gantt Chart with DataTable</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css"
+        integrity="sha512-jnSuA4Ss2PkkikSOLtYs8BlYIeeIK1h99ty4YfvRPAlzr377vr3CXDb7sb7eEEBYjDtcYj+AjBH3FLv5uSJuXg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css"
+        integrity="sha384-4LISF5TTJX/fLmGSxO53rV4miRxdg84mZsxmO8Rx5jGtp/LbrixFETvWa5a6sESd" crossorigin="anonymous" />
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/frappe-gantt/dist/frappe-gantt.css" />
+    <style>
+        .container-fluid {
+            display: flex;
+        }
+
+        #taskTable {
+            width: 40%;
+            max-height: 300px;
+            overflow: auto;
+        }
+
+        #gantt {
+            width: 60%;
+        }
+
+        #header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+        }
+
+        #downloadBtn {
+            margin-top: 10px;
+        }
+
+        .nested {
+            display: none;
+        }
+
+        .expanded>.nested {
+            display: table-row;
+        }
+
+        .folder {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        #viewModeSelect {
+            margin-left: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: clip;
+            height: 22.5px;
+            align-items: center;
+            font-weight: 400 !important;
+            font-size: 14px !important;
+            color: #0d6efd !important;
+        }
+
+        tr {
+            white-space: nowrap;
+            font-size: 14px !important;
+        }
+
+        .lower-text {
+            background: grey !important;
+        }
+
+        .icon-black {
+            color: red;
+        }
+
+        .gantt .lower-text {
+            fill: #004ec3 !important;
+        }
+
+        .bar-label {
+            fill: #000 !important;
+            font-size: 12px !important;
+            font-weight: 400 !important;
+        }
+
+        .baseline {
+            fill: #f79f9f !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="header">
+        <center>
+            <h3>SO – SO No – Customer Name</h3>
+        </center>
+        <div>
+            <div class="btn-group btn-group-sm" role="group" aria-label="View Mode">
+                <button type="button" id="Day" class="btn btn-primary" onclick="updateViewMode('Quarter Day')">Quarter
+                    Day</button>
+                <button type="button" id="Day" class="btn btn-primary" onclick="updateViewMode('Half Day')">Half
+                    Day</button>
+                <button type="button" id="Day" class="btn btn-primary" onclick="updateViewMode('Day')">Day</button>
+                <button type="button" id="Week" class="btn btn-primary" onclick="updateViewMode('Week')">Week</button>
+                <button type="button" id="Month" class="btn btn-primary"
+                    onclick="updateViewMode('Month')">Month</button>
+                <button type="button" id="Year" class="btn btn-primary" onclick="updateViewMode('Year')">Year</button>
+                <button type="button" class="btn btn-danger" onclick="exportGanttChart()"><i
+                        class="bi bi-filetype-pdf"></i> Export</button>
+            </div>
+        </div>
+    </div>
+    <div class="d-flex align-items-start bg-body-tertiary mb-6" style="height: 100px;">
+        <div class="col">
+            <label for="statusSelect" class="form-label">Status:</label>
+            <select class="form-select form-select-sm" id="statusSelect">
+                <option value="Pending">Pending</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+            </select>
+        </div>
+
+        <div class="col lp-3">
+            <label for="ownerSelect" class="form-label">Owner:</label>
+            <select class="form-select form-select-sm" id="ownerSelect">
+                <option value="John Doe">John Doe</option>
+                <option value="Jane Smith">Jane Smith</option>
+                <option value="Alice Johnson">Alice Johnson</option>
+            </select>
+        </div>
+        <div class="col"></div>
+    </div>
+
+    <div class="container-fluid">
+        <div id="taskTable">
+            <table class="table table-responsive table-bordered test" cellspacing="10">
+                <thead>
+                    <tr>
+                        <th colspan="15" style="text-align: center;"></th>
+                    </tr>
+                    <tr style="color: black;">
+                        <th>ID</th>
+                        <th>Task</th>
+                        <th>Name</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Progress</th>
+                        <th>Step</th>
+                        <th>Baseline Start Date</th>
+                        <th>Baseline End Date</th>
+                        <th>Status</th>
+                        <th>Owner</th>
+                        <th>Customer</th>
+                        <th>Milestone</th>
+                        <th>Predecessor</th>
+                        <th>Dependencies</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="parent" data-task-id="1">
+                        <td class="folder" onclick="toggleChildren(this)" style="vertical-align: middle;"><i
+                                class="bi bi-folder-plus"></i></td>
+                        <td></td>
+                        <td>Santos Engineering Works</td>
+                        <td>2022-01-01</td>
+                        <td>2022-01-05</td>
+                        <td>70%</td>
+                        <td>Step 1</td>
+                        <td></td>
+                        <td></td>
+                        <td>Pending</td>
+                        <td>Santos</td>
+                        <td>Telerix</td>
+                        <td>Process 1</td>
+                        <td>Main</td>
+                        <td></td>
+                        <td><button class="btn btn-sm btn-primary" onclick="deleteRow(this)">Delete</button></td>
+                    </tr>
+                    <tr class="parent" data-task-id="1">
+                        <td class="folder" onclick="toggleChildren(this)" style="vertical-align: middle;"><i
+                                class="bi bi-folder-plus"></i></td>
+                        <td></td>
+                        <td>Santos Engineering Works</td>
+                        <td>2022-01-01</td>
+                        <td>2022-01-05</td>
+                        <td>70%</td>
+                        <td>Step 1</td>
+                        <td></td>
+                        <td></td>
+                        <td>Pending</td>
+                        <td>Santos</td>
+                        <td>Telerix</td>
+                        <td>Process 1</td>
+                        <td>Main</td>
+                        <td></td>
+                        <td><button class="btn btn-sm btn-primary" onclick="deleteRow(this)">Delete</button></td>
+                    </tr>
+                    <tr class="child nested" data-parent-id="1">
+                        <td></td>
+                        <td>Task 2</td>
+                        <td>Subtask 1.1</td>
+                        <td>2022-01-02</td>
+                        <td>2022-01-04</td>
+                        <td>50%</td>
+                        <td>Step 2</td>
+                        <td>2022-01-02</td>
+                        <td>2022-01-03</td>
+                        <td>In Progress</td>
+                        <td>Jane Smith</td>
+                        <td>Customer A</td>
+                        <td>Milestone 1</td>
+                        <td>Task 1</td>
+                        <td>1</td>
+                        <td><button class="btn btn-sm btn-primary" onclick="deleteRow(this)">Delete</button></td>
+                    </tr>
+                    <tr class="child nested" data-parent-id="1">
+                        <td></td>
+                        <td>Task 2</td>
+                        <td>Subtask 1.2</td>
+                        <td>2022-01-03</td>
+                        <td>2022-01-05</td>
+                        <td>98%</td>
+                        <td>Step 3</td>
+                        <td>2022-01-03</td>
+                        <td>2022-01-04</td>
+                        <td>Pending</td>
+                        <td>Alice Johnson</td>
+                        <td>Customer A</td>
+                        <td>Milestone 1</td>
+                        <td>Task 2</td>
+                        <td>1</td>
+                        <td><button class="btn btn-sm btn-primary" onclick="deleteRow(this)">Delete</button></td>
+                    </tr>
+                </tbody>
+            </table>
+            <button class="btn btn-primary" onclick="addRow()">Add Row</button>
+        </div>
+        <div id="gantt"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
+    <script src="{% static 'js/frappe-gantt.js' %}"></script>
+    <script src="https://sharonchoong.github.io/svg-exportJS/svg-export.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/svg-to-pdfkit@0.1.8/source.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/blob-stream-browserify@0.1.3/index.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/pdfkit@0.13.0/js/pdfkit.standalone.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/canvg/3.0.9/umd.js"></script>
+
+    <script>
+        let tasks = [];
+        let gantt;
+
+        function toggleChildren(element) {
+            const parentRow = element.parentElement;
+            const taskId = parentRow.dataset.taskId;
+            const isExpanded = parentRow.classList.toggle("expanded");
+            element.innerHTML = isExpanded ? '<i class="text-primary bi bi-folder-minus "></i>' : '<i class="bi bi-folder-plus" style="color: black;"></i>';
+
+            const childRows = document.querySelectorAll(`tr[data-parent-id="${taskId}"]`);
+            childRows.forEach((row) => {
+                row.style.display = isExpanded ? "table-row" : "none";
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const tableRows = document.querySelectorAll("#taskTable tbody tr.parent, #taskTable tbody tr.child");
+            tableRows.forEach((row) => {
+                const progress = parseInt(row.cells[5].innerText.replace("%", ""));
+                const dependencies = row.cells[13].innerText
+                    .split(",")
+                    .map((dep) => dep.trim())
+                    .filter((dep) => dep !== "");
+                const task = {
+                    id: row.cells[1].innerText,
+                    name: row.cells[13].innerText,
+                    start: row.cells[3].innerText,
+                    end: row.cells[4].innerText,
+                    baselineStart: row.cells[7].innerText,
+                    baselineEnd: row.cells[8].innerText,
+                    progress: progress,
+                    dependencies: row.cells[1].innerText, // Task 1 depends on Task 2
+                };
+                tasks.push(task);
+            });
+
+            gantt = new Gantt("#gantt", tasks, {
+                custom_popup_html: null, // Disable default popup
+                custom_draw_task: function (task, element) {
+                    const task_bar = element.querySelector('.bar');
+                    if (task_bar) {
+                        if (task.name.toLowerCase().includes('Main')) {
+                            task_bar.setAttribute('fill', 'green');
+                        } else {
+                            task_bar.setAttribute('stroke', 'blue');
+                        }
+                    }
+
+                    if (task.baselineStart && task.baselineEnd) {
+                        // Calculate baseline positions
+                        const baseline_start_x = this.compute_x(task.baselineStart);
+                        const baseline_end_x = this.compute_x(task.baselineEnd);
+                        const y = parseFloat(task_bar.getAttribute('y')) - 10; // Adjust position as needed
+
+                        // Create a new SVG rect element for the baseline
+                        const baseline_bar = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                        baseline_bar.setAttribute('x', baseline_start_x);
+                        baseline_bar.setAttribute('y', y);
+                        baseline_bar.setAttribute('width', baseline_end_x - baseline_start_x);
+                        baseline_bar.setAttribute('height', 5); // Adjust height as needed
+                        baseline_bar.classList.add('baseline');
+
+                        // Append the baseline bar to the Gantt chart
+                        element.insertBefore(baseline_bar, task_bar);
+                    }
+                }
+            });
+
+            gantt.change_view_mode('Quarter Day');
+        });
+
+
+
+        // const tableRows = document.querySelectorAll("#taskTable tbody tr.parent, #taskTable tbody tr.child");
+        //     tableRows.forEach((row) => {
+        //         const progress = parseInt(row.cells[4].innerText.replace("%", ""));
+        //         const dependencies = row.cells[13].innerText
+        //             .split(",")
+        //             .map((dep) => dep.trim())
+        //             .filter((dep) => dep !== "");
+        //         const task = {
+        //             id: row.cells[13].innerText,
+        //             name: row.cells[1].innerText,
+        //             start: row.cells[2].innerText,
+        //             end: row.cells[3].innerText,
+        //             baselineStart: row.cells[6].innerText,
+        //             baselineEnd: row.cells[7].innerText,
+        //             progress: progress,
+        //             dependencies: row.cells[13].innerText, // Task 1 depends on Task 2
+        //         };
+        //         tasks.push(task);
+        //     });
+
+
+
+        function exportGanttChart() {
+            const ganttChartSVG = document.querySelector("#gantt svg");
+            if (ganttChartSVG) {
+                svgExport.downloadPdf(ganttChartSVG, "Gantt_Export");
+            }
+        }
+
+        function updateViewMode(mode) {
+            gantt.change_view_mode(mode);
+        }
+
+        function deleteRow(button) {
+            const row = button.closest("tr");
+            row.remove();
+            updateGantt();
+        }
+
+        function addRow() {
+            const tableBody = document.querySelector("#taskTable tbody");
+            const newRow = document.createElement("tr");
+            newRow.innerHTML = `
+                <td class="folder" onclick="toggleChildren(this)" style="vertical-align: middle;">+ <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-folder"><path d="M13.172,2H6C4.9,2,4,2.9,4,4v16c0,1.1,0.9,2,2,2h12c1.1,0,2-0.9,2-2V8.828c0-0.53-0.211-1.039-0.586-1.414l-4.828-4.828C14.211,2.211,13.702,2,13.172,2z M18.5,9H13V3.5L18.5,9z"></path></svg></td>
+                <td>New Task</td>
+                <td>2022-01-01</td>
+                <td>2022-01-05</td>
+                <td>0%</td>
+                <td>Step</td>
+                <td>2022-01-01</td>
+                <td>2022-01-03</td>
+                <td>Status</td>
+                <td>Owner</td>
+                <td>Customer</td>
+                <td>Milestone</td>
+                <td>1</td>
+                <td>Dependency</td>
+                <td><button class="btn btn-sm btn-primary" onclick="deleteRow(this)">Delete</button></td>
+            `;
+            tableBody.appendChild(newRow);
+            updateGantt();
+        }
+
+    </script>
+</body>
+
+</html>
